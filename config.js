@@ -9,7 +9,7 @@ const CONFIG = {
   //  STUDY AREA METADATA
   // --------------------------------------------------------------------------
   studyArea: {
-    name:        "Leyte Province",           // Displayed in header and page title
+    name:        "Davao del Norte",          // Displayed in header and page title
     project:     "SLIP-EIL / OMEGA Project", // Subtitle shown in header
     description: "Deterministic EIL hazard mapping — Province-scale Newmark displacement analysis",
     reviewer:    "",                         // Optional: shown in footer ("For review by: ...")
@@ -20,7 +20,7 @@ const CONFIG = {
   //  Use geographic coords (decimal degrees, WGS84)
   // --------------------------------------------------------------------------
   map: {
-    center: [10.85, 124.85],  // [latitude, longitude]
+    center: [7.55, 125.65],   // [latitude, longitude] — Davao del Norte
     zoom:   10,
     minZoom: 7,
     maxZoom: 18,
@@ -47,7 +47,7 @@ const CONFIG = {
     {
       id:          "hazard",
       label:       "EIL Hazard Map",
-      url:         "https://raw.githubusercontent.com/jabitteschon/PIVS-EIL/main/rasters/DDN_EIL_Hazard_cog.tif",
+      url:         "https://github.com/jabitteschon/PIVS-EIL/raw/main/rasters/DDN_EIL_Hazard_cog.tif",
       opacity:     0.75,
       visible:     true,
       zIndex:      2,
@@ -68,7 +68,7 @@ const CONFIG = {
     {
       id:          "depositional",
       label:       "Depositional Zone",
-      url:         "https://raw.githubusercontent.com/jabitteschon/PIVS-EIL/main/rasters/DDN_Runout_cog.tif",
+      url:         "https://github.com/jabitteschon/PIVS-EIL/raw/main/rasters/DDN_Runout_cog.tif",
       opacity:     0.70,
       visible:     true,
       zIndex:      1,
