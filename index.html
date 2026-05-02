@@ -373,6 +373,8 @@
   /* ── MAP ─────────────────────────────────────────────────────────────────── */
   #map {
     flex: 1;
+    height: 100%;
+    width: 100%;
     background: #111;
     cursor: default;
   }
@@ -677,8 +679,8 @@
   </div>
 
   <!-- MAP -->
-  <div style="position:relative;flex:1;overflow:hidden;">
-    <div id="map"></div>
+  <div style="position:relative;flex:1;overflow:hidden;height:100%;">
+    <div id="map" style="height:100%;width:100%;"></div>
     <div id="raster-status">Loading raster...</div>
     <div id="coords-bar">—</div>
   </div>
