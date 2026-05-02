@@ -11,7 +11,7 @@
 
 <!-- GeoRaster (COG raster support) -->
 <script src="https://unpkg.com/georaster@1.6.0/dist/georaster.browser.bundle.min.js"></script>
-<script src="https://unpkg.com/georaster-layer-for-leaflet@3.10.0/dist/georaster-layer-for-leaflet.min.js"></script>
+<script src="https://unpkg.com/georaster-layer-for-leaflet@3.10.0/dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
 
 <!-- Google Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -990,7 +990,13 @@ async function loadRasters() {
       if (r.zIndex != null) opts.zIndex = r.zIndex;
       const layer = new GeoRasterLayer(opts);
       rasterLayers[r.id] = layer;
-      if (r.visible) layer.addTo(map);
+      if (r.visible) {
+        layer.addTo(map);
+        // Fit map to raster bounds on first visible raster load
+        if (!window._rasterBoundsFitted) {
+          try { map.fitBounds(layer.getBounds()); window._rasterBoundsFitted = true; } catch(e) {}
+        }
+      }
       hideRasterStatus();
     } catch (err) {
       showRasterStatus(`Failed: ${r.label} — ${err.message}`, true);
