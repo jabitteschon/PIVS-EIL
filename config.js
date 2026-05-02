@@ -47,7 +47,7 @@ const CONFIG = {
     {
       id:          "hazard",
       label:       "EIL Hazard Map",
-      url:         "https://raw.githubusercontent.com/jabitteschon/PIVS-EIL/main/rasters/EIL_Hazard_Trial48_cleaned_cog.tif",
+      url:         "https://raw.githubusercontent.com/jabitteschon/PIVS-EIL/main/rasters/DDN_EIL_Hazard_cog.tif",
       opacity:     0.75,
       visible:     true,
       zIndex:      2,
@@ -68,7 +68,7 @@ const CONFIG = {
     {
       id:          "depositional",
       label:       "Depositional Zone",
-      url:         "https://raw.githubusercontent.com/jabitteschon/PIVS-EIL/main/rasters/DDN_Runout_Zone_Trial48_cog.tif",
+      url:         "https://raw.githubusercontent.com/jabitteschon/PIVS-EIL/main/rasters/DDN_Runout_cog.tif",
       opacity:     0.70,
       visible:     true,
       zIndex:      1,
