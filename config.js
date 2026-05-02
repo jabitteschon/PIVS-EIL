@@ -47,7 +47,7 @@ const CONFIG = {
     {
       id:          "hazard",
       label:       "EIL Hazard Map",
-      url:         "https://pub-39473771ea19483ba83e34fc40363051.r2.dev/DDN_EIL_Hazard_cog.tif",
+      url:         "https://pub-39473771ea19483ba83e34fc40363051.r2.dev/DDN_EIL_Hazard_cog_8bit.tif",
       opacity:     0.75,
       visible:     true,
       zIndex:      2,
