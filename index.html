@@ -941,9 +941,16 @@ async function loadRasters() {
   // Load in ascending zIndex order so lower layers are added to map first
   const sorted = [...CONFIG.rasters].sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
   for (const r of sorted) {
-    if (!r.driveFileId || r.driveFileId.includes('YOUR_')) continue;
+    // Support direct URL (GitHub raw / GCS) or legacy driveFileId
+    let url;
+    if (r.url) {
+      url = r.url;
+    } else if (r.driveFileId && !r.driveFileId.includes('YOUR_')) {
+      url = `https://drive.google.com/uc?export=download&id=${r.driveFileId}`;
+    } else {
+      continue; // skip unconfigured layers
+    }
     showRasterStatus(`Loading ${r.label}...`);
-    const url = `https://drive.google.com/uc?export=download&id=${r.driveFileId}`;
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
