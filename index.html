@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EIL Webmap — PHIVOLCS GGRDD</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<!-- GeoRaster (COG raster support) -->
+<script src="https://unpkg.com/georaster@1.6.0/dist/georaster.browser.bundle.min.js"></script>
+<script src="https://unpkg.com/georaster-layer-for-leaflet@3.10.0/dist/georaster-layer-for-leaflet.browser.js"></script>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  /* ── DESIGN SYSTEM ─────────────────────────────────────────────────────── */
+  :root {
+    --bg:          #0d1117;
+    --bg-panel:    #161b22;
+    --bg-card:     #21262d;
+    --bg-hover:    #30363d;
+    --border:      #30363d;
+    --border-light:#444c56;
+    --text:        #e6edf3;
+    --text-muted:  #8b949e;
+    --text-dim:    #484f58;
+    --accent:      #58a6ff;
+    --accent-glow: rgba(88,166,255,0.15);
+    --danger:      #e63946;
+    --success:     #3fb950;
+    --warning:     #d29922;
+    --mono:        'IBM Plex Mono', monospace;
+    --sans:        'IBM Plex Sans', sans-serif;
+    --panel-w:     320px;
+    --header-h:    52px;
+    --radius:      6px;
+    --shadow:      0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ─────────────────────────────────────────────────────────────── */
+  #header {
+    height: var(--header-h);
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    flex-shrink: 0;
+    z-index: 1000;
+  }
+
+  #header .logo {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    white-space: nowrap;
+    padding: 4px 8px;
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+  }
+
+  #header .divider { width: 1px; height: 24px; background: var(--border); }
+
+  #header .title-block { flex: 1; min-width: 0; }
+  #header .study-area {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #header .project-name {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  #header .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--border-light); }
+  .btn.primary { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 600; }
+  .btn.primary:hover { opacity: 0.85; }
+  .btn.danger { border-color: var(--danger); color: var(--danger); }
+  .btn.danger:hover { background: rgba(230,57,70,0.1); }
+
+  /* ── LAYOUT ─────────────────────────────────────────────────────────────── */
+  #app {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ─────────────────────────────────────────────────────────────── */
+  #sidebar {
+    width: var(--panel-w);
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 10px 0;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--bg-hover); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-panel { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+  .tab-panel.active { display: flex; }
+
+  /* scrollable layer tab content */
+  .tab-scroll {
+    flex: 1;
+    overflow-y: auto;
+  }
+  .tab-scroll::-webkit-scrollbar { width: 4px; }
+  .tab-scroll::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+  .panel-section {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .panel-section-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  /* ── LAYER CONTROLS ─────────────────────────────────────────────────────── */
+  .layer-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .layer-item:last-child { border-bottom: none; }
+
+  .layer-toggle {
+    width: 28px; height: 16px;
+    background: var(--bg-hover);
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .layer-toggle::after {
+    content: '';
+    position: absolute;
+    left: 2px; top: 2px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: all 0.2s;
+  }
+  .layer-toggle.on { background: var(--accent); border-color: var(--accent); }
+  .layer-toggle.on::after { left: 14px; background: #0d1117; }
+
+  .layer-swatch {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .layer-label {
+    font-size: 12px;
+    color: var(--text);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* opacity slider */
+  .opacity-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+    padding-bottom: 4px;
+  }
+  .opacity-row label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .opacity-row input[type=range] {
+    flex: 1;
+    height: 3px;
+    appearance: none;
+    background: var(--border-light);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .opacity-row input[type=range]::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+  .opacity-val {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    width: 28px;
+    text-align: right;
+  }
+
+  /* ── PIN PANEL ───────────────────────────────────────────────────────────── */
+  #pin-mode-bar {
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  #pin-mode-btn {
+    flex: 1;
+  }
+  #pin-mode-btn.active {
+    background: rgba(88,166,255,0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  #pin-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 6px 14px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #pin-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  #pin-list::-webkit-scrollbar { width: 4px; }
+  #pin-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+  .pin-card {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .pin-card:hover { background: var(--bg-hover); }
+
+  .pin-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .pin-cat-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .pin-cat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .pin-author {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+  .pin-comment {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pin-time {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 3px;
+  }
+
+  .pin-empty {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 12px;
+    font-family: var(--mono);
+    line-height: 1.8;
+  }
+
+  /* ── MAP ─────────────────────────────────────────────────────────────────── */
+  #map {
+    flex: 1;
+    background: #111;
+    cursor: default;
+  }
+
+  #map.pin-cursor { cursor: crosshair; }
+
+  /* Leaflet popup override */
+  .leaflet-popup-content-wrapper {
+    background: var(--bg-panel) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow) !important;
+    color: var(--text) !important;
+    font-family: var(--sans) !important;
+  }
+  .leaflet-popup-tip { background: var(--bg-panel) !important; }
+  .leaflet-popup-close-button { color: var(--text-muted) !important; }
+
+  .popup-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .popup-row { display: flex; gap: 8px; margin-bottom: 4px; }
+  .popup-key {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    min-width: 80px;
+  }
+  .popup-val { font-size: 12px; color: var(--text); }
+  .popup-comment {
+    margin-top: 8px;
+    padding: 8px;
+    background: var(--bg-card);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.5;
+    border-left: 2px solid var(--accent);
+  }
+  .popup-actions { margin-top: 10px; display: flex; gap: 6px; }
+
+  /* ── PIN FORM MODAL ──────────────────────────────────────────────────────── */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 9000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  #modal-overlay.show { display: flex; }
+
+  #pin-form {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    padding: 24px;
+    width: 360px;
+    box-shadow: var(--shadow);
+    animation: fadeUp 0.2s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .form-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .form-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+
+  .form-input, .form-textarea, .form-select {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-textarea:focus, .form-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .form-textarea { min-height: 80px; resize: vertical; }
+  .form-select option { background: var(--bg-card); }
+
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 0;
+  }
+  .cat-option {
+    padding: 7px 6px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .cat-option:hover { border-color: var(--border-light); color: var(--text); }
+  .cat-option.selected { color: var(--text); font-weight: 500; }
+
+  .form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+  }
+
+  /* ── NAME PROMPT ─────────────────────────────────────────────────────────── */
+  #name-prompt {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+  #name-prompt.show { display: flex; }
+  #name-prompt-box {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    padding: 32px;
+    width: 340px;
+    box-shadow: var(--shadow);
+  }
+  #name-prompt-box h2 {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  #name-prompt-box p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+    line-height: 1.5;
+  }
+
+  /* ── RASTER STATUS ───────────────────────────────────────────────────────── */
+  #raster-status {
+    position: absolute;
+    bottom: 28px;
+    left: calc(var(--panel-w) + 12px);
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    z-index: 500;
+    pointer-events: none;
+    display: none;
+  }
+  #raster-status.show { display: block; }
+  #raster-status.error { color: var(--danger); border-color: var(--danger); }
+
+  /* ── COORDS BAR ──────────────────────────────────────────────────────────── */
+  #coords-bar {
+    position: absolute;
+    bottom: 6px;
+    left: calc(var(--panel-w) + 12px);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    z-index: 500;
+    pointer-events: none;
+    letter-spacing: 0.04em;
+  }
+
+  /* Leaflet attribution override */
+  .leaflet-control-attribution {
+    background: rgba(13,17,23,0.85) !important;
+    color: var(--text-dim) !important;
+    font-size: 9px !important;
+  }
+  .leaflet-control-attribution a { color: var(--text-muted) !important; }
+</style>
+</head>
+<body>
+
+<!-- ── NAME PROMPT ──────────────────────────────────────────────────────────── -->
+<div id="name-prompt">
+  <div id="name-prompt-box">
+    <h2>EIL Webmap Reviewer</h2>
+    <p id="name-prompt-text">Enter your name to begin reviewing. Your name will be attached to all pins you place.</p>
+    <label class="form-label">Your Name</label>
+    <input class="form-input" id="reviewer-name-input" placeholder="e.g. Juan dela Cruz" autocomplete="off">
+    <div class="form-actions" style="margin-top:16px;">
+      <button class="btn primary" style="flex:1;" onclick="submitName()">Begin Review</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── HEADER ───────────────────────────────────────────────────────────────── -->
+<div id="header">
+  <div class="logo">PHIVOLCS · EIL</div>
+  <div class="divider"></div>
+  <div class="title-block">
+    <div class="study-area" id="header-study-area">Loading...</div>
+    <div class="project-name" id="header-project">—</div>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="exportPins()">↓ Export Pins</button>
+    <button class="btn" onclick="refreshPins()" title="Sync pins from sheet">⟳ Sync</button>
+  </div>
+</div>
+
+<!-- ── APP ──────────────────────────────────────────────────────────────────── -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+
+    <div class="sidebar-tabs">
+      <button class="tab-btn active" onclick="switchTab('layers', this)">Layers</button>
+      <button class="tab-btn" onclick="switchTab('pins', this)">Pins <span id="pin-count-badge"></span></button>
+    </div>
+
+    <!-- LAYERS TAB -->
+    <div class="tab-panel active" id="tab-layers">
+      <div class="tab-scroll">
+
+        <!-- Raster Layers (generated from config) -->
+        <div class="panel-section" id="raster-layers-panel">
+          <div class="panel-section-title">Raster Layers</div>
+          <div id="raster-layer-list"></div>
+        </div>
+
+        <!-- Vector Layers (generated from config) -->
+        <div class="panel-section" id="vector-layers-panel">
+          <div class="panel-section-title">Vector Layers</div>
+          <div id="vector-layer-list"></div>
+        </div>
+
+        <!-- Basemap -->
+        <div class="panel-section">
+          <div class="panel-section-title">Basemap</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn active" id="bm-osm"  onclick="setBasemap('osm',  this)">OSM Standard</button>
+            <button class="btn"        id="bm-topo"  onclick="setBasemap('topo', this)">Topo</button>
+            <button class="btn"        id="bm-sat"   onclick="setBasemap('sat',  this)">Satellite</button>
+            <button class="btn"        id="bm-dark"  onclick="setBasemap('dark', this)">Dark</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PINS TAB -->
+    <div class="tab-panel" id="tab-pins">
+      <div id="pin-mode-bar">
+        <button class="btn" id="pin-mode-btn" onclick="togglePinMode()">+ Place Pin</button>
+        <button class="btn danger" onclick="clearTempPin()" id="clear-pin-btn" style="display:none;">✕ Cancel</button>
+      </div>
+      <div id="pin-status">Loading pins from sheet...</div>
+      <div id="pin-list"></div>
+    </div>
+
+  </div>
+
+  <!-- MAP -->
+  <div style="position:relative;flex:1;overflow:hidden;">
+    <div id="map"></div>
+    <div id="raster-status">Loading raster...</div>
+    <div id="coords-bar">—</div>
+  </div>
+
+</div>
+
+<!-- ── PIN FORM MODAL ────────────────────────────────────────────────────────── -->
+<div id="modal-overlay">
+  <div id="pin-form">
+    <div class="form-title">New Pin</div>
+    <div id="form-coords" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:12px;"></div>
+
+    <label class="form-label">Category</label>
+    <div class="cat-grid" id="cat-grid"></div>
+
+    <label class="form-label">Comment</label>
+    <textarea class="form-textarea" id="pin-comment-input" placeholder="Describe your observation, flag, or note..."></textarea>
+
+    <div class="form-actions">
+      <button class="btn" style="flex:1;" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" style="flex:1;" onclick="submitPin()">Save Pin</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── SCRIPTS ───────────────────────────────────────────────────────────────── -->
+<script src="config.js"></script>
+<script>
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let map, baseLayers = {}, currentBasemap = 'osm';
+let rasterLayers = {};
+let vectorLayers = {};
+let pinMode = false;
+let tempMarker = null;
+let pendingLatLng = null;
+let selectedCategory = null;
+let reviewerName = '';
+let allPins = [];
+let sheetSyncInterval = null;
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  applyConfig();
+  initMap();
+  initCatGrid();
+  buildRasterPanel();
+  buildVectorLayerPanel();
+  loadRasters();
+  loadVectorLayers();
+  handleNamePrompt();
+});
+
+function applyConfig() {
+  document.title = `EIL Webmap — ${CONFIG.studyArea.name}`;
+  document.getElementById('header-study-area').textContent = CONFIG.studyArea.name;
+  document.getElementById('header-project').textContent = CONFIG.studyArea.project;
+}
+
+// ── NAME PROMPT ───────────────────────────────────────────────────────────────
+function handleNamePrompt() {
+  if (!CONFIG.auth.requireName) { initPins(); return; }
+  const stored = sessionStorage.getItem('eil_reviewer_name');
+  if (stored) { reviewerName = stored; initPins(); return; }
+  document.getElementById('name-prompt-text').textContent = CONFIG.auth.prompt;
+  document.getElementById('name-prompt').classList.add('show');
+  document.getElementById('reviewer-name-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitName();
+  });
+}
+
+function submitName() {
+  const val = document.getElementById('reviewer-name-input').value.trim();
+  if (!val) { document.getElementById('reviewer-name-input').style.borderColor = 'var(--danger)'; return; }
+  reviewerName = val;
+  sessionStorage.setItem('eil_reviewer_name', val);
+  document.getElementById('name-prompt').classList.remove('show');
+  initPins();
+}
+
+// ── MAP INIT ──────────────────────────────────────────────────────────────────
+function initMap() {
+  map = L.map('map', {
+    center: CONFIG.map.center,
+    zoom:   CONFIG.map.zoom,
+    minZoom: CONFIG.map.minZoom,
+    maxZoom: CONFIG.map.maxZoom,
+    zoomControl: true,
+  });
+
+  baseLayers.osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  });
+
+  baseLayers.topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenTopoMap contributors',
+    maxZoom: 17
+  });
+
+  baseLayers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '© Esri — Earthstar Geographics',
+    maxZoom: 18
+  });
+
+  baseLayers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© CARTO',
+    maxZoom: 19
+  });
+
+  baseLayers.osm.addTo(map);
+
+  map.on('mousemove', e => {
+    document.getElementById('coords-bar').textContent =
+      `${e.latlng.lat.toFixed(5)}°N  ${e.latlng.lng.toFixed(5)}°E`;
+  });
+
+  map.on('click', e => {
+    if (!pinMode) return;
+    pendingLatLng = e.latlng;
+    if (tempMarker) map.removeLayer(tempMarker);
+    tempMarker = L.circleMarker(e.latlng, {
+      radius: 8,
+      color: '#58a6ff',
+      fillColor: '#58a6ff',
+      fillOpacity: 0.4,
+      weight: 2,
+    }).addTo(map);
+    openModal(e.latlng);
+  });
+}
+
+function setBasemap(key, btn) {
+  Object.values(baseLayers).forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+  baseLayers[key].addTo(map);
+  baseLayers[key].bringToBack();
+  document.querySelectorAll('[id^=bm-]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentBasemap = key;
+  Object.values(rasterLayers).forEach(l => l && l.bringToFront && l.bringToFront());
+  Object.values(vectorLayers).forEach(l => l && l.bringToFront && l.bringToFront());
+}
+
+// ── RASTER PANEL ─────────────────────────────────────────────────────────────
+function buildRasterPanel() {
+  const list = document.getElementById('raster-layer-list');
+  list.innerHTML = '';
+  // Display in reverse zIndex order (highest on top visually = first in panel)
+  const sorted = [...CONFIG.rasters].sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0));
+  sorted.forEach(r => {
+    const op = Math.round(r.opacity * 100);
+    const legendHtml = (r.legend && r.legend.length)
+      ? r.legend.map(e => `
+          <div style="display:flex;align-items:center;gap:6px;margin:2px 0;">
+            <div style="width:10px;height:10px;border-radius:2px;background:${e.color};flex-shrink:0;"></div>
+            <span style="font-size:11px;color:var(--text-muted);">${e.label}</span>
+          </div>`).join('')
+      : `<div class="layer-swatch" style="background:linear-gradient(135deg,#4caf50,#f4a261,#e63946);display:inline-block;"></div>`;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+      <div class="layer-item" style="align-items:flex-start;padding:8px 0;">
+        <div class="layer-toggle ${r.visible ? 'on' : ''}" id="toggle-raster-${r.id}"
+             style="margin-top:2px;flex-shrink:0;"
+             onclick="toggleRaster('${r.id}', this)"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="layer-label" style="margin-bottom:5px;">${r.label}</div>
+          ${legendHtml}
+        </div>
+      </div>
+      <div class="opacity-row">
+        <label>Opacity</label>
+        <input type="range" min="0" max="100" value="${op}" id="raster-opacity-${r.id}"
+               oninput="updateRasterOpacity('${r.id}', this.value)">
+        <span class="opacity-val" id="opacity-display-${r.id}">${op}%</span>
+      </div>
+    `;
+    list.appendChild(wrap);
+  });
+}
+
+// ── COLORMAPS ─────────────────────────────────────────────────────────────────
+// Each stop: [normalised position 0–1, [r, g, b, a]]
+const COLORMAPS = {
+  rdylgn_r: [
+    [0.0,  [165,  0, 38, 255]],   // dark red   (high hazard)
+    [0.2,  [215, 48, 39, 255]],
+    [0.4,  [253,174, 97, 255]],
+    [0.5,  [255,255,191, 255]],   // yellow
+    [0.6,  [166,217,106, 255]],
+    [0.8,  [ 26,152, 80, 255]],
+    [1.0,  [  0,104, 55, 255]],   // dark green (low hazard)
+  ],
+  viridis: [
+    [0.0,  [ 68,  1, 84, 255]],
+    [0.25, [ 59, 82,139, 255]],
+    [0.5,  [ 33,145,140, 255]],
+    [0.75, [ 94,201, 98, 255]],
+    [1.0,  [253,231, 37, 255]],
+  ],
+  hot: [
+    [0.0,  [  0,  0,  0, 255]],
+    [0.33, [255,  0,  0, 255]],
+    [0.66, [255,255,  0, 255]],
+    [1.0,  [255,255,255, 255]],
+  ],
+};
+
+function lerpColor(a, b, t) {
+  return a.map((v, i) => Math.round(v + t * (b[i] - v)));
+}
+
+function sampleColormap(stops, t) {
+  t = Math.max(0, Math.min(1, t));
+  for (let i = 1; i < stops.length; i++) {
+    if (t <= stops[i][0]) {
+      const [t0, c0] = stops[i - 1];
+      const [t1, c1] = stops[i];
+      return lerpColor(c0, c1, (t - t0) / (t1 - t0));
+    }
+  }
+  return stops[stops.length - 1][1];
+}
+
+// Returns a pixelValuesToColorFn for GeoRasterLayer, or null to use default rendering.
+function makeColorFn(rasterConfig, georaster) {
+  const noData = georaster.noDataValue;
+  const { pixelMap, noDataValues = [], colormap } = rasterConfig;
+
+  if (pixelMap) {
+    // Exact integer lookup — values not in pixelMap render transparent
+    const noDataSet = new Set(noDataValues.map(Number));
+    return (values) => {
+      const v = values[0];
+      if (v === noData || v == null || isNaN(v)) return null;
+      const key = Math.round(v);
+      if (noDataSet.has(key)) return null;
+      return pixelMap[key] ?? null;
+    };
+  }
+
+  if (typeof colormap === 'string') {
+    const stops = COLORMAPS[colormap];
+    if (!stops) return null;
+    const min = georaster.mins[0];
+    const max = georaster.maxs[0];
+    const range = max - min || 1;
+    return (values) => {
+      const v = values[0];
+      if (v === noData || v == null || isNaN(v)) return null;
+      return sampleColormap(stops, (v - min) / range);
+    };
+  }
+
+  return null;
+}
+
+// ── RASTER LOADING ────────────────────────────────────────────────────────────
+async function loadRasters() {
+  // Load in ascending zIndex order so lower layers are added to map first
+  const sorted = [...CONFIG.rasters].sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
+  for (const r of sorted) {
+    if (!r.driveFileId || r.driveFileId.includes('YOUR_')) continue;
+    showRasterStatus(`Loading ${r.label}...`);
+    const url = `https://drive.google.com/uc?export=download&id=${r.driveFileId}`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const arrayBuffer = await response.arrayBuffer();
+      const georaster = await parseGeoraster(arrayBuffer);
+      const colorFn = makeColorFn(r, georaster);
+      const opts = { georaster, opacity: r.opacity, resolution: 256 };
+      if (colorFn) opts.pixelValuesToColorFn = colorFn;
+      if (r.zIndex != null) opts.zIndex = r.zIndex;
+      const layer = new GeoRasterLayer(opts);
+      rasterLayers[r.id] = layer;
+      if (r.visible) layer.addTo(map);
+      hideRasterStatus();
+    } catch (err) {
+      showRasterStatus(`Failed: ${r.label} — ${err.message}`, true);
+      console.error(r.id, err);
+    }
+  }
+}
+
+function toggleRaster(id, btn) {
+  btn.classList.toggle('on');
+  const lyr = rasterLayers[id];
+  if (!lyr) return;
+  if (btn.classList.contains('on')) lyr.addTo(map);
+  else map.removeLayer(lyr);
+}
+
+function updateRasterOpacity(id, val) {
+  document.getElementById(`opacity-display-${id}`).textContent = `${val}%`;
+  const lyr = rasterLayers[id];
+  if (lyr) lyr.setOpacity(val / 100);
+}
+
+function showRasterStatus(msg, isError = false) {
+  const el = document.getElementById('raster-status');
+  el.textContent = msg;
+  el.className = isError ? 'show error' : 'show';
+}
+function hideRasterStatus() {
+  document.getElementById('raster-status').className = '';
+}
+
+// ── VECTOR LAYERS ─────────────────────────────────────────────────────────────
+function buildVectorLayerPanel() {
+  const list = document.getElementById('vector-layer-list');
+  list.innerHTML = '';
+  CONFIG.layers.forEach(lyr => {
+    const isLine = lyr.geometry === 'line';
+    const color  = isLine ? lyr.style.color : (lyr.style.fillColor || lyr.style.color);
+    const el = document.createElement('div');
+    el.className = 'layer-item';
+    el.innerHTML = `
+      <div class="layer-toggle ${lyr.visible ? 'on' : ''}" id="toggle-${lyr.id}"
+           onclick="toggleVector('${lyr.id}', this)"></div>
+      <div class="layer-swatch" style="background:${color};${isLine ? 'height:3px;width:14px;border-radius:1px;' : ''}"></div>
+      <div class="layer-label">${lyr.label}</div>
+    `;
+    list.appendChild(el);
+  });
+}
+
+async function loadVectorLayers() {
+  for (const lyr of CONFIG.layers) {
+    try {
+      let geojson;
+      if (lyr.source.type === 'local') {
+        const res = await fetch(lyr.source.path);
+        if (!res.ok) { console.warn(`Layer ${lyr.id}: not found at ${lyr.source.path}`); continue; }
+        geojson = await res.json();
+      } else if (lyr.source.type === 'drive') {
+        const url = `https://drive.google.com/uc?export=download&id=${lyr.source.fileId}`;
+        const res = await fetch(url);
+        if (!res.ok) { console.warn(`Layer ${lyr.id}: Drive fetch failed`); continue; }
+        geojson = await res.json();
+      }
+      const leafletLayer = L.geoJSON(geojson, {
+        style: lyr.geometry !== 'point' ? lyr.style : undefined,
+        pointToLayer: lyr.geometry === 'point' ? (f, latlng) => L.circleMarker(latlng, {
+          radius: lyr.style.radius || 5,
+          color: lyr.style.color,
+          fillColor: lyr.style.fillColor || lyr.style.color,
+          fillOpacity: lyr.style.fillOpacity ?? 0.7,
+          weight: lyr.style.weight || 1,
+        }) : undefined,
+        onEachFeature: (feature, layer) => {
+          if (!lyr.popup || !feature.properties) return;
+          const rows = lyr.popup
+            .filter(k => feature.properties[k] !== undefined && feature.properties[k] !== null)
+            .map(k => `<div class="popup-row"><span class="popup-key">${k}</span><span class="popup-val">${feature.properties[k]}</span></div>`)
+            .join('');
+          if (rows) layer.bindPopup(`<div class="popup-title">${lyr.label}</div>${rows}`, { maxWidth: 280 });
+        }
+      });
+      vectorLayers[lyr.id] = leafletLayer;
+      if (lyr.visible) leafletLayer.addTo(map);
+    } catch (err) {
+      console.warn(`Layer ${lyr.id} failed:`, err);
+    }
+  }
+}
+
+function toggleVector(id, btn) {
+  btn.classList.toggle('on');
+  const lyr = vectorLayers[id];
+  if (!lyr) return;
+  if (btn.classList.contains('on')) lyr.addTo(map);
+  else map.removeLayer(lyr);
+}
+
+// ── PIN MODE ──────────────────────────────────────────────────────────────────
+function togglePinMode() {
+  pinMode = !pinMode;
+  const btn = document.getElementById('pin-mode-btn');
+  const cancelBtn = document.getElementById('clear-pin-btn');
+  btn.classList.toggle('active', pinMode);
+  btn.textContent = pinMode ? '● Pinning Active' : '+ Place Pin';
+  cancelBtn.style.display = pinMode ? 'block' : 'none';
+  document.getElementById('map').classList.toggle('pin-cursor', pinMode);
+}
+
+function clearTempPin() {
+  if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
+  pendingLatLng = null;
+  pinMode = false;
+  togglePinMode(); togglePinMode(); // reset state
+  closeModal();
+}
+
+// ── PIN FORM ──────────────────────────────────────────────────────────────────
+function initCatGrid() {
+  const grid = document.getElementById('cat-grid');
+  grid.innerHTML = '';
+  CONFIG.pins.categories.forEach((cat, i) => {
+    const el = document.createElement('div');
+    el.className = 'cat-option';
+    el.dataset.index = i;
+    el.innerHTML = `<span style="color:${cat.color};font-size:14px;">${cat.icon}</span>${cat.label}`;
+    el.onclick = () => {
+      document.querySelectorAll('.cat-option').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      el.style.borderColor = cat.color;
+      el.style.background = `${cat.color}22`;
+      selectedCategory = i;
+    };
+    grid.appendChild(el);
+  });
+}
+
+function openModal(latlng) {
+  document.getElementById('form-coords').textContent =
+    `${latlng.lat.toFixed(5)}°N  ${latlng.lng.toFixed(5)}°E`;
+  document.getElementById('pin-comment-input').value = '';
+  document.querySelectorAll('.cat-option').forEach(c => {
+    c.classList.remove('selected');
+    c.style.borderColor = '';
+    c.style.background = '';
+  });
+  selectedCategory = null;
+  document.getElementById('modal-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('pin-comment-input').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+  if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
+  pendingLatLng = null;
+  if (pinMode) { pinMode = false; togglePinMode(); togglePinMode(); }
+}
+
+async function submitPin() {
+  if (!pendingLatLng) return;
+  if (selectedCategory === null) {
+    alert('Please select a category.');
+    return;
+  }
+  const cat = CONFIG.pins.categories[selectedCategory];
+  const comment = document.getElementById('pin-comment-input').value.trim();
+  if (!comment) {
+    document.getElementById('pin-comment-input').style.borderColor = 'var(--danger)';
+    return;
+  }
+  document.getElementById('pin-comment-input').style.borderColor = '';
+
+  const pin = {
+    id:        `pin_${Date.now()}`,
+    lat:       pendingLatLng.lat.toFixed(6),
+    lng:       pendingLatLng.lng.toFixed(6),
+    category:  cat.label,
+    comment,
+    timestamp: new Date().toISOString(),
+    author:    reviewerName || 'Anonymous',
+  };
+
+  closeModal();
+  pinMode = false;
+  document.getElementById('map').classList.remove('pin-cursor');
+
+  await appendPinToSheet(pin);
+  await refreshPins();
+}
+
+// ── GOOGLE SHEETS ─────────────────────────────────────────────────────────────
+const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
+
+async function initPins() {
+  await refreshPins();
+  sheetSyncInterval = setInterval(refreshPins, 30000);
+}
+
+async function refreshPins() {
+  const { sheetId, apiKey } = CONFIG.pins;
+  if (!sheetId || sheetId.includes('YOUR_')) {
+    document.getElementById('pin-status').textContent = 'Sheet ID not configured in config.js';
+    renderPinList([]);
+    return;
+  }
+  try {
+    const url = `${SHEETS_BASE}/${sheetId}/values/Pins?key=${apiKey}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || res.statusText);
+    }
+    const data = await res.json();
+    const rows = (data.values || []).slice(1); // skip header
+    allPins = rows.map(r => ({
+      id: r[0], lat: parseFloat(r[1]), lng: parseFloat(r[2]),
+      category: r[3], comment: r[4],
+      timestamp: r[5], author: r[6] || '',
+    })).filter(p => !isNaN(p.lat) && !isNaN(p.lng));
+    document.getElementById('pin-status').textContent =
+      `${allPins.length} pin${allPins.length !== 1 ? 's' : ''} · synced ${new Date().toLocaleTimeString()}`;
+    document.getElementById('pin-count-badge').textContent = allPins.length ? ` (${allPins.length})` : '';
+    renderPinList(allPins);
+    renderPinMarkers(allPins);
+  } catch (err) {
+    document.getElementById('pin-status').textContent = `Sync error: ${err.message}`;
+    console.error(err);
+  }
+}
+
+// Writes via Apps Script web app (URL params + no-cors) so no OAuth is needed.
+async function appendPinToSheet(pin) {
+  const { scriptUrl } = CONFIG.pins;
+  if (!scriptUrl || scriptUrl.includes('YOUR_')) {
+    alert('Script URL not configured in config.js — pin was not saved to the sheet.\nSee the pins.scriptUrl comment for setup instructions.');
+    return;
+  }
+  const params = new URLSearchParams({
+    id: pin.id, lat: pin.lat, lng: pin.lng,
+    category: pin.category, comment: pin.comment,
+    timestamp: pin.timestamp, author: pin.author,
+  });
+  try {
+    await fetch(scriptUrl, { method: 'POST', body: params, mode: 'no-cors' });
+  } catch (err) {
+    console.error('Sheet write error:', err);
+  }
+}
+
+// ── PIN RENDERING ─────────────────────────────────────────────────────────────
+let pinMarkerLayer = null;
+
+function getCatStyle(catLabel) {
+  return CONFIG.pins.categories.find(c => c.label === catLabel)
+    || { color: '#8b949e', icon: '●' };
+}
+
+function renderPinMarkers(pins) {
+  if (pinMarkerLayer) map.removeLayer(pinMarkerLayer);
+  if (!pins.length) return;
+  const markers = pins.map(pin => {
+    const cat = getCatStyle(pin.category);
+    const marker = L.circleMarker([pin.lat, pin.lng], {
+      radius: 8,
+      color: cat.color,
+      fillColor: cat.color,
+      fillOpacity: 0.75,
+      weight: 2,
+    });
+    const ts = pin.timestamp ? new Date(pin.timestamp).toLocaleString() : '—';
+    marker.bindPopup(`
+      <div class="popup-title" style="color:${cat.color}">${cat.icon} ${pin.category}</div>
+      <div class="popup-comment">${pin.comment}</div>
+      <div class="popup-row" style="margin-top:8px;">
+        <span class="popup-key">Author</span>
+        <span class="popup-val">${pin.author || 'Anonymous'}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-key">Time</span>
+        <span class="popup-val">${ts}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-key">Coords</span>
+        <span class="popup-val">${pin.lat}, ${pin.lng}</span>
+      </div>
+    `, { maxWidth: 280 });
+    return marker;
+  });
+  pinMarkerLayer = L.layerGroup(markers).addTo(map);
+}
+
+function renderPinList(pins) {
+  const list = document.getElementById('pin-list');
+  if (!pins.length) {
+    list.innerHTML = `<div class="pin-empty">No pins yet.<br>Switch to Pins tab<br>and click "+ Place Pin"</div>`;
+    return;
+  }
+  list.innerHTML = '';
+  [...pins].reverse().forEach(pin => {
+    const cat = getCatStyle(pin.category);
+    const ts = pin.timestamp ? new Date(pin.timestamp).toLocaleString() : '—';
+    const card = document.createElement('div');
+    card.className = 'pin-card';
+    card.innerHTML = `
+      <div class="pin-card-header">
+        <div class="pin-cat-dot" style="background:${cat.color}"></div>
+        <div class="pin-cat-label" style="color:${cat.color}">${pin.category}</div>
+        <div class="pin-author">${pin.author || ''}</div>
+      </div>
+      <div class="pin-comment">${pin.comment}</div>
+      <div class="pin-time">${ts}</div>
+    `;
+    card.onclick = () => {
+      map.setView([pin.lat, pin.lng], 14);
+      switchTab('pins', document.querySelectorAll('.tab-btn')[1]);
+    };
+    list.appendChild(card);
+  });
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+function exportPins() {
+  if (!allPins.length) { alert('No pins to export.'); return; }
+  const geojson = {
+    type: 'FeatureCollection',
+    features: allPins.map(p => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+      properties: { id: p.id, category: p.category, comment: p.comment,
+                    author: p.author, timestamp: p.timestamp }
+    }))
+  };
+  const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pins_${CONFIG.studyArea.name.replace(/\s/g,'_')}_${new Date().toISOString().split('T')[0]}.geojson`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+</script>
+</body>
+</html>
