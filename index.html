@@ -10,8 +10,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
 <!-- GeoRaster (COG raster support) -->
-<script src="https://cdn.jsdelivr.net/npm/georaster@1.6.0/dist/georaster.browser.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/georaster-layer-for-leaflet@3.10.0/dist/georaster-layer-for-leaflet.browser.min.js"></script>
+<script src="https://unpkg.com/georaster@1.6.0/dist/georaster.browser.bundle.min.js"></script>
+<script src="https://unpkg.com/georaster-layer-for-leaflet@3.10.0/dist/georaster-layer-for-leaflet.min.js"></script>
 
 <!-- Google Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1029,14 +1029,25 @@ function buildVectorLayerPanel() {
     const color  = isLine ? lyr.style.color : (lyr.style.fillColor || lyr.style.color);
     const el = document.createElement('div');
     el.className = 'layer-item';
+    el.id = `layer-item-${lyr.id}`;
     el.innerHTML = `
       <div class="layer-toggle ${lyr.visible ? 'on' : ''}" id="toggle-${lyr.id}"
            onclick="toggleVector('${lyr.id}', this)"></div>
       <div class="layer-swatch" style="background:${color};${isLine ? 'height:3px;width:14px;border-radius:1px;' : ''}"></div>
       <div class="layer-label">${lyr.label}</div>
+      <span id="unavailable-${lyr.id}" style="display:none;font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-left:auto;letter-spacing:0.05em;">N/A</span>
     `;
     list.appendChild(el);
   });
+}
+
+function markLayerUnavailable(id) {
+  const item = document.getElementById(`layer-item-${id}`);
+  const toggle = document.getElementById(`toggle-${id}`);
+  const badge = document.getElementById(`unavailable-${id}`);
+  if (item) item.style.opacity = '0.4';
+  if (toggle) { toggle.classList.remove('on'); toggle.style.pointerEvents = 'none'; }
+  if (badge) badge.style.display = 'inline';
 }
 
 async function loadVectorLayers() {
@@ -1045,12 +1056,12 @@ async function loadVectorLayers() {
       let geojson;
       if (lyr.source.type === 'local') {
         const res = await fetch(lyr.source.path);
-        if (!res.ok) { console.warn(`Layer ${lyr.id}: not found at ${lyr.source.path}`); continue; }
+        if (!res.ok) { markLayerUnavailable(lyr.id); console.warn(`Layer ${lyr.id}: not found at ${lyr.source.path}`); continue; }
         geojson = await res.json();
       } else if (lyr.source.type === 'drive') {
         const url = `https://drive.google.com/uc?export=download&id=${lyr.source.fileId}`;
         const res = await fetch(url);
-        if (!res.ok) { console.warn(`Layer ${lyr.id}: Drive fetch failed`); continue; }
+        if (!res.ok) { markLayerUnavailable(lyr.id); console.warn(`Layer ${lyr.id}: Drive fetch failed`); continue; }
         geojson = await res.json();
       }
       const leafletLayer = L.geoJSON(geojson, {

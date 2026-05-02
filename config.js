@@ -10,7 +10,7 @@ const CONFIG = {
   // --------------------------------------------------------------------------
   studyArea: {
     name:        "Davao del Norte",          // Displayed in header and page title
-    project:     "SLIP-EIL / OMEGA Project", // Subtitle shown in header
+    project:     "SLIP Project — EIL Component",  // Subtitle shown in header
     description: "Deterministic EIL hazard mapping — Province-scale Newmark displacement analysis",
     reviewer:    "",                         // Optional: shown in footer ("For review by: ...")
   },
@@ -109,7 +109,7 @@ const CONFIG = {
     },
     {
       id:       "trigger_points",
-      label:    "Earthquake Trigger Points",
+      label:    "Earthquake Epicenters",
       geometry: "point",
       source:   { type: "local", path: "layers/trigger_points.geojson" },
       style: {
