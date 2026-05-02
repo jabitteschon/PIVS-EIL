@@ -55,8 +55,6 @@ const CONFIG = {
         0: [214,  40,  40, 220],   // High     → red
         1: [123,  45, 139, 220],   // Moderate → purple
         2: [244, 211,  94, 220],   // Low      → yellow
-        5: [  0,   0,   0,   0],   // NoData   → transparent
-        15:[  0,   0,   0,   0],   // NoData   → transparent
       },
       noDataValues: [5, 15],
       legend: [

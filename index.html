@@ -938,10 +938,13 @@ function makeColorFn(rasterConfig, georaster) {
 
   if (pixelMap) {
     // Exact integer lookup — values not in pixelMap render transparent
-    const noDataSet = new Set(noDataValues.map(Number));
+    const noDataSet = new Set([
+      ...noDataValues.map(Number),
+      ...(georaster.noDataValue != null ? [Number(georaster.noDataValue)] : [])
+    ]);
     return (values) => {
       const v = values[0];
-      if (v === noData || v == null || isNaN(v)) return null;
+      if (v == null || isNaN(v)) return null;
       const key = Math.round(v);
       if (noDataSet.has(key)) return null;
       return pixelMap[key] ?? null;
