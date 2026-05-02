@@ -938,16 +938,23 @@ function makeColorFn(rasterConfig, georaster) {
 
   if (pixelMap) {
     // Exact integer lookup — values not in pixelMap render transparent
+    // v3 georaster-layer-for-leaflet requires CSS color strings, not RGBA arrays
     const noDataSet = new Set([
       ...noDataValues.map(Number),
       ...(georaster.noDataValue != null ? [Number(georaster.noDataValue)] : [])
     ]);
+    // Pre-convert pixelMap RGBA arrays to CSS rgba() strings
+    const cssMap = {};
+    for (const [key, rgba] of Object.entries(pixelMap)) {
+      const [r, g, b, a = 255] = rgba;
+      cssMap[key] = `rgba(${r},${g},${b},${(a/255).toFixed(3)})`;
+    }
     return (values) => {
       const v = values[0];
-      if (v == null || isNaN(v)) return [0, 0, 0, 0];
+      if (v == null || isNaN(v)) return null;
       const key = Math.round(v);
-      if (noDataSet.has(key)) return [0, 0, 0, 0];
-      return pixelMap[key] ?? [0, 0, 0, 0];
+      if (noDataSet.has(key)) return null;
+      return cssMap[key] ?? null;
     };
   }
 
