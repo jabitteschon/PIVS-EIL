@@ -24,33 +24,67 @@ const CONFIG = {
     zoom:   10,
     minZoom: 7,
     maxZoom: 18,
+    basemapOpacity: 0.75,     // Tile layer opacity (0–1). Hillshade renders beneath.
   },
 
   // --------------------------------------------------------------------------
-  //  RASTER LAYERS — GeoTIFF files stored in Google Drive
-  //  Each file must be shared: "Anyone with the link can view"
-  //  Ideally COG-formatted (see GDAL command: gdal_translate -of COG)
+  //  RASTER LAYERS — GeoTIFF files (ideally COG-formatted)
   //
-  //  CRS: Rasters are in PRS92 / UTM Zone 51N. georaster-layer-for-leaflet
-  //  reads the embedded projection and reprojects to WGS84 automatically.
-  //  Map view coords (center, clicks, pins) remain WGS84 geographic as
-  //  required by Leaflet — no extra configuration needed.
+  //  url: Direct link to a publicly accessible GeoTIFF.
+  //       Leave as "" to show the layer in the panel as unavailable (grayed out).
+  //
+  //  CRS: Rasters may be in PRS92/UTM Zone 51N or WGS84 geographic.
+  //       georaster-layer-for-leaflet reads the embedded projection and
+  //       reprojects automatically — no extra configuration needed.
   //
   //  pixelMap: { pixelValue: [R, G, B, A], ... }
   //    Exact integer pixel value → RGBA color (0–255).
-  //    Values not listed → transparent. Use A=0 to explicitly mark NoData.
+  //    Values not listed → transparent.
+  //  pixelMap: null → raw grayscale passthrough (for hillshade / continuous).
   //  noDataValues: [N, ...]  Additional values to force transparent.
   //  zIndex: lower numbers render below higher numbers.
   //  legend: [{ label, color }]  Shown in the Layers panel.
   // --------------------------------------------------------------------------
   rasters: [
+
+    // -- Hillshade (bottommost — below all thematic rasters) ------------------
     {
-      id:          "hazard",
-      label:       "EIL Hazard Map",
-      url:         "https://pub-39473771ea19483ba83e34fc40363051.r2.dev/DDN_EIL_Hazard_WGS84.tif",
-      opacity:     0.75,
-      visible:     true,
-      zIndex:      2,
+      id:           "hillshade",
+      label:        "Hillshade",
+      url:          "https://pub-39473771ea19483ba83e34fc40363051.r2.dev/DdN_Hillshade_WGS84.tif",
+      opacity:      0.90,
+      visible:      true,
+      zIndex:       1,
+      pixelMap:     null,        // null = raw grayscale passthrough
+      noDataValues: [0],
+      legend:       [],
+    },
+
+    // -- Depositional Zone ----------------------------------------------------
+    {
+      id:           "depositional",
+      label:        "Depositional Zone",
+      url:          "",          // ← paste R2 link here when available
+      opacity:      0.75,
+      visible:      false,
+      zIndex:       2,
+      pixelMap: {
+        1: [69, 123, 157, 200],
+      },
+      noDataValues: [],
+      legend: [
+        { label: "Depositional Zone", color: "#457b9d" },
+      ],
+    },
+
+    // -- EIL Hazard Map (topmost thematic layer) ------------------------------
+    {
+      id:           "hazard",
+      label:        "EIL Hazard Map",
+      url:          "https://pub-39473771ea19483ba83e34fc40363051.r2.dev/EIL_Hazard_Trial54_WGS84_v2.tif",
+      opacity:      0.75,
+      visible:      true,
+      zIndex:       3,
       pixelMap: {
         0: [214,  40,  40, 220],   // High     → red
         1: [123,  45, 139, 220],   // Moderate → purple
@@ -63,21 +97,7 @@ const CONFIG = {
         { label: "Low",      color: "#f4d35e" },
       ],
     },
-    {
-      id:          "depositional",
-      label:       "Depositional Zone",
-      url:         "https://pub-39473771ea19483ba83e34fc40363051.r2.dev/DDN_Runout_WGS84.tif",
-      opacity:     0.70,
-      visible:     true,
-      zIndex:      1,
-      pixelMap: {
-        1: [69, 123, 157, 200],
-      },
-      noDataValues: [],
-      legend: [
-        { label: "Depositional Zone", color: "#457b9d" },
-      ],
-    },
+
   ],
 
   // --------------------------------------------------------------------------
@@ -163,8 +183,8 @@ const CONFIG = {
   // --------------------------------------------------------------------------
   pins: {
     sheetId:   "1_2mDXGv7sUEZv_HcQYSnlnFe3JC7iyG8MnrhcJwbZTE",
-    apiKey:    "AIzaSyB_E1teg071HwUZ66LGdtUfpjE51OuBayw",  // Google Cloud → Credentials → API Key (Sheets API enabled)
-    scriptUrl: "https://script.google.com/macros/s/AKfycbzs2OXDMHNdd23s4h1Ms4vZGrUYD_pLwt1VHUyUm5KnVGMgdUq5qpdsS4A__jaPbgdOVQ/exec", // Apps Script deployment URL (for writes)
+    apiKey:    "AIzaSyB_E1teg071HwUZ66LGdtUfpjE51OuBayw",
+    scriptUrl: "https://script.google.com/macros/s/AKfycbzs2OXDMHNdd23s4h1Ms4vZGrUYD_pLwt1VHUyUm5KnVGMgdUq5qpdsS4A__jaPbgdOVQ/exec",
     categories: [
       { label: "EIL Hazard",        color: "#e63946", icon: "▲" },
       { label: "Depositional Zone",  color: "#f4a261", icon: "◆" },

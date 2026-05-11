@@ -798,24 +798,30 @@ function initMap() {
     zoomControl: true,
   });
 
+  const bmOpacity = CONFIG.map.basemapOpacity ?? 1.0;
+
   baseLayers.osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
-    maxZoom: 19
+    maxZoom: 19,
+    opacity: bmOpacity,
   });
 
   baseLayers.topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenTopoMap contributors',
-    maxZoom: 17
+    maxZoom: 17,
+    opacity: bmOpacity,
   });
 
   baseLayers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: '© Esri — Earthstar Geographics',
-    maxZoom: 18
+    maxZoom: 18,
+    opacity: bmOpacity,
   });
 
   baseLayers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '© CARTO',
-    maxZoom: 19
+    maxZoom: 19,
+    opacity: bmOpacity,
   });
 
   baseLayers.osm.addTo(map);
@@ -852,35 +858,44 @@ function setBasemap(key, btn) {
 }
 
 // ── RASTER PANEL ─────────────────────────────────────────────────────────────
+function rasterHasUrl(r) {
+  return !!(r.url && r.url.trim() !== '');
+}
+
 function buildRasterPanel() {
   const list = document.getElementById('raster-layer-list');
   list.innerHTML = '';
   // Display in reverse zIndex order (highest on top visually = first in panel)
   const sorted = [...CONFIG.rasters].sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0));
   sorted.forEach(r => {
-    const op = Math.round(r.opacity * 100);
+    const hasUrl    = rasterHasUrl(r);
+    const op        = Math.round(r.opacity * 100);
     const legendHtml = (r.legend && r.legend.length)
       ? r.legend.map(e => `
           <div style="display:flex;align-items:center;gap:6px;margin:2px 0;">
-            <div style="width:10px;height:10px;border-radius:2px;background:${e.color};flex-shrink:0;"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:${e.color};flex-shrink:0;${!hasUrl ? 'filter:grayscale(1);opacity:0.4;' : ''}"></div>
             <span style="font-size:11px;color:var(--text-muted);">${e.label}</span>
           </div>`).join('')
-      : `<div class="layer-swatch" style="background:linear-gradient(135deg,#4caf50,#f4a261,#e63946);display:inline-block;"></div>`;
+      : `<div class="layer-swatch" style="background:linear-gradient(135deg,#aaa,#888,#666);display:inline-block;"></div>`;
     const wrap = document.createElement('div');
+    wrap.style.opacity = hasUrl ? '1' : '0.45';
     wrap.innerHTML = `
       <div class="layer-item" style="align-items:flex-start;padding:8px 0;">
-        <div class="layer-toggle ${r.visible ? 'on' : ''}" id="toggle-raster-${r.id}"
-             style="margin-top:2px;flex-shrink:0;"
-             onclick="toggleRaster('${r.id}', this)"></div>
+        <div class="layer-toggle ${hasUrl && r.visible ? 'on' : ''}" id="toggle-raster-${r.id}"
+             style="margin-top:2px;flex-shrink:0;${!hasUrl ? 'pointer-events:none;' : ''}"
+             ${hasUrl ? `onclick="toggleRaster('${r.id}', this)"` : ''}></div>
         <div style="flex:1;min-width:0;">
-          <div class="layer-label" style="margin-bottom:5px;">${r.label}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+            <div class="layer-label" style="margin-bottom:0;">${r.label}</div>
+            ${!hasUrl ? `<span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:0.05em;margin-left:auto;">NO DATA</span>` : ''}
+          </div>
           ${legendHtml}
         </div>
       </div>
       <div class="opacity-row">
         <label>Opacity</label>
         <input type="range" min="0" max="100" value="${op}" id="raster-opacity-${r.id}"
-               oninput="updateRasterOpacity('${r.id}', this.value)">
+               ${!hasUrl ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : `oninput="updateRasterOpacity('${r.id}', this.value)"`}>
         <span class="opacity-val" id="opacity-display-${r.id}">${op}%</span>
       </div>
     `;
@@ -955,6 +970,21 @@ function makeColorFn(rasterConfig, georaster) {
       const key = Math.round(v);
       if (noDataSet.has(key)) return null;
       return cssMap[key] ?? null;
+    };
+  }
+
+  // pixelMap === null → raw grayscale passthrough (used for hillshade)
+  if (pixelMap === null) {
+    const noDataSet = new Set([
+      ...noDataValues.map(Number),
+      ...(georaster.noDataValue != null ? [Number(georaster.noDataValue)] : [])
+    ]);
+    return (values) => {
+      const v = values[0];
+      if (v == null || isNaN(v)) return null;
+      if (noDataSet.has(Math.round(v))) return null;
+      const g = Math.max(0, Math.min(255, Math.round(v)));
+      return `rgb(${g},${g},${g})`;
     };
   }
 
